@@ -1,7 +1,8 @@
-Davide Sut 
-ID: VR505441
+# NLP Assignment 1
+# Davide Sut 
+# ID: VR505441
 
-Repository link: https://github.com/RedSut/NLP_Assignment1
+## The Assignment
 
 Five different Wikipedia pages were chosen for each category: Geographic, Non-Geographic.
 The pages texts were extracted using the Wikipedia API and can be stored into a .txt file.
@@ -18,3 +19,9 @@ After the preprocessing step, the bag-of-words is created for each text and can 
 Finally, the labels are applied to each BoW and a training set is created.
 
 The classifier is built and trained using the nltk NaiveBayesClassifier.
+
+## Instructions
+
+You simply need to put the text to classify into _input\_text.txt_ file.
+
+Then run the _main.py_ script and the console tells you the predicted class for that text.

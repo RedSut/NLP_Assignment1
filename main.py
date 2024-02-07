@@ -123,11 +123,16 @@ def get_classifier(data):
                      ('nb', MultinomialNB())])
     
     # Create the classifier
-    classif = SklearnClassifier(pipeline)
+    classifier = SklearnClassifier(pipeline)
     # Train dataset
-    classif.train(data)
+    classifier.train(data)
 
-    return classif
+    return classifier
+
+def get_classifier_2(data):
+    from nltk.classify import NaiveBayesClassifier
+    classifier = NaiveBayesClassifier.train(data)
+    return classifier
 
 
 if __name__ == "__main__":
@@ -152,7 +157,7 @@ if __name__ == "__main__":
     train_data += add_label(not_cat_bow_texts, "Non-Geographic") # Coppia (BOW, Non-Category)
 
     # Get the classifier
-    classifier = get_classifier(train_data)
+    classifier = get_classifier_2(train_data)
 
     #new_text = BOW(preprocessing(API_call(["19725260"])), ["19725260"])
 
@@ -163,3 +168,5 @@ if __name__ == "__main__":
 
     cat = classifier.classify(new_bow_text[0])
     print("The predicted category is: " + cat)
+    
+    #print("Accuracy" + nltk.classify.accuracy(classifier))
