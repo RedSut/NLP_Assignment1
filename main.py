@@ -9,9 +9,43 @@ nltk.download('stopwords')
 from nltk.corpus import stopwords
 
 from nltk.stem.porter import PorterStemmer
-from autocorrect import Speller
+#from autocorrect import Speller
 
 save_texts = False
+
+def get_geography_category_ids():
+    # URL dell'API di Wikipedia
+    url = "https://en.wikipedia.org/w/api.php"
+
+    # Parametri della richiesta
+    params = {
+        "action": "query",
+        "format": "json",
+        "list": "categorymembers",
+        "cmlimit": 5
+    }
+    
+    params["cmpageid"] = "693800" # Category: Geography
+    # Get first 5 sub-categories
+    params["cmtype"] = "subcat"
+    response = requests.get(url, params=params)
+    pages = response.json()["query"]["categorymembers"]
+    sub_cat_ids = ["693800"]
+    for page in iter(pages):
+        sub_cat_ids.append(page["pageid"])
+
+    # Estrai id prime 5 pagine per ogni categoria
+    params["cmtype"] = "page"
+    page_ids = []
+    for id in sub_cat_ids:
+        params["cmpageid"] = id
+        response = requests.get(url, params=params)
+        # Estrai il testo della pagina di Wikipedia
+        pages = response.json()["query"]["categorymembers"]
+        for page in iter(pages):
+            page_ids.append(str(page["pageid"]))
+    return page_ids
+
 
 def API_call(page_ids):
     # Wikipedia API URL
@@ -65,8 +99,8 @@ def preprocessing(texts):
         for i in range(len(tokenized_sms)):
             tokenized_sms[i] = stemmer.stem(tokenized_sms[i])
         # Spell correction
-        spell = Speller(lang='en')
-        tokenized_sms[i] = stemmer.stem(spell(tokenized_sms[i]))
+        #spell = Speller(lang='en')
+        #tokenized_sms[i] = stemmer.stem(spell(tokenized_sms[i]))
         
         sms_text = " ".join(tokenized_sms)
         pp_texts.append(sms_text)
@@ -137,8 +171,9 @@ def get_classifier_2(data):
 
 if __name__ == "__main__":
     # Texts ids
-    cat_ids = ["18963910", "36248807", "71520442", "14389994", "38262946"] # Geographic
-    not_cat_ids = ["23862", "18957", "6678", "19009110", "11145"] # Non-Geographic
+    #cat_ids = get_geography_category_ids()
+    cat_ids = ["18963910", "36248807", "71520442", "14389994", "1149904", "38262946", "2596739"] # Geographic
+    not_cat_ids = ["23862", "18957", "6678", "19009110", "11145", "5928", "18957"] # Non-Geographic 
 
     # Get texts from Wikipedia API
     cat_texts = API_call(cat_ids)
@@ -153,11 +188,12 @@ if __name__ == "__main__":
     not_cat_bow_texts = BOW(not_cat_pp_texts, not_cat_ids)
 
     # Create the training dataset
-    train_data = add_label(cat_bow_texts, "Geographic") # Coppia (BOW, Category)
-    train_data += add_label(not_cat_bow_texts, "Non-Geographic") # Coppia (BOW, Non-Category)
+    cat_data = add_label(cat_bow_texts, "Geographic") # Coppia (BOW, Category)
+    not_cat_data = add_label(not_cat_bow_texts, "Non-Geographic") # Coppia (BOW, Non-Category)
 
     # Get the classifier
-    classifier = get_classifier_2(train_data)
+    train_data = cat_data[:5] + not_cat_data[:5]
+    classifier = get_classifier(train_data)
 
     #new_text = BOW(preprocessing(API_call(["19725260"])), ["19725260"])
 
@@ -168,5 +204,17 @@ if __name__ == "__main__":
 
     cat = classifier.classify(new_bow_text[0])
     print("The predicted category is: " + cat)
+
+    # Metrics with test dataset
+    test_data = cat_data[5:] + not_cat_data[5:]
+    print("Accuracy: " + str(nltk.classify.accuracy(classifier, test_data)))
+
+    from sklearn.metrics import precision_score, recall_score
+    pred_cats = []
+    true_cats = []
+    for d in test_data:
+        true_cats.append(d[1])
+        pred_cats.append(classifier.classify(d[0]))
     
-    #print("Accuracy" + nltk.classify.accuracy(classifier))
+    print("Precision: " + str(precision_score(true_cats, pred_cats, average="macro")))
+    print("Recall: " + str(recall_score(true_cats, pred_cats, average="macro")))
